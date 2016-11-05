@@ -1,7 +1,7 @@
 ###################################
 # CS B551 Fall 2016, Assignment #3
 #
-# Your names and user ids:
+# Your names and user ids: Karun Dhingra, Sanna Wager, Saurav Maheshwary (dhingrak, scwager, samahesh)
 #
 # (Based on skeleton code by D. Crandall)
 #
@@ -9,7 +9,11 @@
 ####
 # Put your report here!!
 ####
-
+#
+from trainingProbabilities import TrainingProbs
+import simplified
+import hmm
+import complexB
 import random
 import math
 
@@ -18,26 +22,35 @@ import math
 # that we've supplied.
 #
 class Solver:
-
+    
+    def __init__(self):
+        self.probObj = TrainingProbs() 
+    
     # Calculate the log of the posterior probability of a given sentence
-    #  with a given part-of-speech labeling
+    # with a given part-of-speech labeling
+    #
     def posterior(self, sentence, label):
         return 0
 
     # Do the training!
     #
     def train(self, data):
-        pass
+        self.probObj.train(data)
 
     # Functions for each algorithm.
     #
     def simplified(self, sentence):
-        return [ [ [ "noun" ] * len(sentence)], [[0] * len(sentence),] ]
+        result = simplified.findPosSimplified(self.probObj, sentence)
+        #print result
+        return result
+        #return [ [ [ "noun" ] * len(sentence)], [[0] * len(sentence),] ]
 
     def hmm(self, sentence):
+        #return hmm.findPosHmm(self.probObj, sentence)
         return [ [ [ "noun" ] * len(sentence)], [] ]
 
     def complex(self, sentence):
+        #return complexB.findPosComplex(self.probObj, sentence)
         return [ [ [ "noun" ] * len(sentence)], [[0] * len(sentence),] ]
 
 
