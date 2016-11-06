@@ -26,8 +26,10 @@ class TrainingProbs:
         self.probSuffixPos = Counter() # Probability of word with suffix being a pos. eg: P of word with suffix 'sion' being a 'noun'
         self.probPos = Counter() # P(S)
         self.probPosGivenPos = Counter() # P(Si+1|Si)
+        self.tranProbComplex = Counter() # P(Si+2|Si)
         self.probWordGivenPos = Counter() # P(W|S)
         self.countOfPos = 0 # total number of Pos in training data
+        self.count2Pos = 0 # total number of 2 Pos considered
         self.countOfWords = 0# Total number of words
         self.delimit = '|'
         self.numberOfSentences = 0
@@ -49,8 +51,14 @@ class TrainingProbs:
         
     # Check if word is present in trained Model
     def checkWordPresent(self, word):
-        for entry in self.probWordGivenPos.keys():
-            if entry.startswith(word):
+        allPos = self.probPos
+        for entry in allPos:
+            if word + self.delimit + entry in self.probWordGivenPos:
+                return True
+        return False
+        for entry in self.probWordGivenPos:
+            word, pos = entry.split(self.delimit)
+            if entry == word:
                 return True
         return False
         
@@ -77,11 +85,23 @@ class TrainingProbs:
 
     # TODO: Update model to reflect unkown word that was found
     def updateModel(self, word, pos):
-        self.countOfWords += 1
+        #self.countOfWords += 1
         query = word + self.delimit + pos
         self.probWordGivenPos[query] = 1/self.countOfWords
 	return self.probWordGivenPos[query]
-        
+    
+    # Calculating Count for P(si+2|si)
+    def calculatePrevious2(self, pos):
+        for i in range(2, len(pos)):
+            self.tranProbComplex[pos[i] + self.delimit + pos[i-2]] += 1
+            self.count2Pos += 1
+        #print self.tranProbComplex, self.count2Pos
+        #sys.exit(0)
+
+    def smoothSuffixPos(self):
+        for entry in self.suffixAndPos:
+            self.probSuffixPos[entry] += 1
+
     # Training the Model
     def train(self, data):
         #pr = cProfile.Profile()
@@ -94,11 +114,12 @@ class TrainingProbs:
             self.numberOfSentences += 1
             self.probPosGivenPos[allPosInLine[0] + self.delimit + self.startOfSentence] += 1
             previousPos = ""
+            # print "POS: ", allPosInLine
             
+            self.calculatePrevious2(allPosInLine)
             for index in range(len(allWordsInLine)):
                 word = allWordsInLine[index]
                 pos = allPosInLine[index]
-                
                 # Adding count for <Prefix>|<POS>
                 suffixPresent = self.checkSuffix(word) # Check if word has the prefix and pos that we are searching for
                 if suffixPresent != None:
@@ -117,9 +138,9 @@ class TrainingProbs:
                 self.probWordGivenPos[word + self.delimit + pos] += 1
                 
                 if previousPos:
-                     self.probPosGivenPos[pos + self.delimit + previousPos] += 1
+                    self.probPosGivenPos[pos + self.delimit + previousPos] += 1
                 previousPos = pos
-
+        self.smoothSuffixPos()
         self.smoothing()
         self.calculateWordProb()
         self.calculateTransitionProb()
@@ -139,13 +160,13 @@ class TrainingProbs:
     def calculatePosProb(self):
         for entry in self.probPos.keys():
             self.probPos[entry] /= self.countOfPos
-            #print "POS: entry: ", entry, self.probPos[entry]
+            #print "P(S): POS: entry: ", entry, self.probPos[entry]
 
     # Calculate P(W|S)
     def calculateWordProb(self):
         for entry in self.probWordGivenPos.keys():
             self.probWordGivenPos[entry] /= self.probPos[entry.split(self.delimit)[1]]
-            #print "Word: entry", entry, self.probWordGivenPos[entry]
+            #print "P(W|S): Word: entry", entry, self.probWordGivenPos[entry]
 
     # Calculate P(Si+1 | Si) - Transition Probability
     def calculateTransitionProb(self):
@@ -156,7 +177,6 @@ class TrainingProbs:
             else:
                 self.probPosGivenPos[entry] /= self.probPos[pos[0]]
             #print "Transition Probabilities for entry: ", entry, self.probPosGivenPos[entry]
-        #sys.exit(0)
 
 
     def getProbNextPosGivenPrevPos(self, prevPos, presentPos):
@@ -186,7 +206,7 @@ class TrainingProbs:
         return self.probPos.keys()
     
     def getPosForUnseenWord(self, word):
-        # print "Word Not Found: ", word
+        #print "Word Not Found: ", word
         predictedPos = 'noun'
         if self.containsDigit(word):
             predictedPos = 'num'
@@ -197,17 +217,21 @@ class TrainingProbs:
                 maxProb = 0 
                 bestPos = ''
                 for entry in self.suffixAndPos:
-                    if entry.startswith(suffixOfWord):
+                    suffix, pos = entry.split(self.delimit)
+                    if suffix == suffixOfWord:
                         #print "Checking: ", entry
                         #print "Starts! "
                         suffix, pos = entry.split(self.delimit)
+                        #print "suffixPOS", self.probSuffixPos[entry], "pos", self.probPos[pos]
                         currentValue = self.probSuffixPos[entry] * self.probPos[pos]
                         #print currentValue
                         if currentValue > maxProb:
                             maxProb = currentValue
                             bestPos = pos
+                            #print "best", bestPos
                 #probValues = [(self.probSuffixPos[entry] * self.probPos[entry.split(self.delimit)[1]], entry) for entry in self.suffixAndPos.keys() if entry.startswith(suffixOfWord)]
-                predictedPos = bestPos 
+                predictedPos = bestPos
+                #print predictedPos 
                 
         # Update Model 
         calculatedProb = self.updateModel(word, predictedPos)

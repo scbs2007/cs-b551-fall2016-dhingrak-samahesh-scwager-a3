@@ -1,12 +1,19 @@
 # For Simplified Bayes Net
 #
+
+'''
+def replaceGreater(p1, p2, best, pos):
+    if p1 > p2:
+        p2 = p1
+'''
+
 def findPosSimplified(probObj, sentence):
     #print "In simplified"
     predictedPos = []
     probValues = []
     for eachWord in sentence:
-        highestProb = 0
         bestPos = ""
+        highestProb = 0
         for pos in probObj.getAllPos():
             # P(S|W) = P(W|S) * P(S)
             # Ignoring Denominator - constant
@@ -17,10 +24,11 @@ def findPosSimplified(probObj, sentence):
             if probWgivenS > highestProb:
                 highestProb = probWgivenS
                 bestPos = pos
-
+            
         # If word wasn't found in the training data
-        if highestProb == 0:
+        if not highestProb:
             bestPos, highestProb = probObj.getPosForUnseenWord(eachWord)
+            #print bestPos, highestPos
 
         predictedPos.append(bestPos)
         probValues.append(highestProb)
