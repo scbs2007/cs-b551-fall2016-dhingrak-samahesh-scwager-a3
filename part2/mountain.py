@@ -47,13 +47,13 @@ def draw_edge(image, y_coordinates, color, thickness):
 def draw_state(obs_prob, prev = -1, next = -1):
     #draw random state given transition probabilities from previous and next states in sample and emission probabilities
     if prev == -1:
-        p = [ (normal_dist[abs(next-i)] if abs(next-i)>1 else 0.5) * obs_prob[i] for i in range(len(obs_prob)) ] #p(s_t | (s_(t+1), obs_t)
+        p = [ (normal_dist[abs(next-i)] if abs(next-i)>2 else 0.5) * obs_prob[i] for i in range(len(obs_prob)) ] #p(s_t | (s_(t+1), obs_t)
         #p = [ (0.99 if next==i else 0.01/abs(next-i)) * obs_prob[i] for i in range(len(obs_prob)) ] #p(s_t | (s_(t+1), obs_t)
     elif next == -1:
-        p = [ (normal_dist[abs(prev-i)] if abs(prev-i)>1 else 0.5) * obs_prob[i] for i in range(len(obs_prob)) ] #p(s_t | (s_(t-1), obs_t)
+        p = [ (normal_dist[abs(prev-i)] if abs(prev-i)>2 else 0.5) * obs_prob[i] for i in range(len(obs_prob)) ] #p(s_t | (s_(t-1), obs_t)
         #p = [ (0.99 if prev==i else 0.01/abs(prev-i)) * obs_prob[i] for i in range(len(obs_prob)) ] #p(s_t | (s_(t-1), obs_t)
     else:
-        p = [ (normal_dist[abs(prev-i)] if abs(prev-i)>1 else 0.5) * (normal_dist[abs(next-i)] if abs(next-i)>2 else 0.5) * obs_prob[i] for i in range(len(obs_prob)) ] #p(s_t | (s_(t-1), s_(t+1), obs_t)
+        p = [ (normal_dist[abs(prev-i)] if abs(prev-i)>2 else 0.5) * (normal_dist[abs(next-i)] if abs(next-i)>2 else 0.5) * obs_prob[i] for i in range(len(obs_prob)) ] #p(s_t | (s_(t-1), s_(t+1), obs_t)
         #p = [ (0.99 if prev==i else 0.01/abs(prev-i)) * (0.99 if next==i else 0.01/abs(next-i)) * obs_prob[i] for i in range(len(obs_prob)) ] #p(s_t | (s_(t-1), s_(t+1), obs_t)
         plt.plot(p)
         plt.show()
@@ -101,8 +101,8 @@ for file in os.listdir(img_directory):
     baseline_ridge = [ edge_strength.shape[0]/2 ] * edge_strength.shape[1]
     simple_bayes_ridge = edge_strength.argmax(axis = 0)
     #mcmc_ridge = mcmc( array([[.9,.1,.1,.1],[.1,.9,.9,.1],[.1,.1,.1,.9]]) , iterations = 1000) #test on small array
-    normal_dist = [ max(0.0000001, norm.pdf(i, 0, 2)) for i in range(edge_strength.shape[1]) ]
-    mcmc_ridge = mcmc(edge_strength, iterations = 2000)
+    normal_dist = [ max(0.00001, norm.pdf(i, 0, 3)) for i in range(edge_strength.shape[1]) ]
+    mcmc_ridge = mcmc(edge_strength, iterations = 10000)
     #print [(col, row) for col, row in enumerate(mcmc_ridge)]
 
     # output answer
