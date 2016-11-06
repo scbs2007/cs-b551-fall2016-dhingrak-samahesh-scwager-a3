@@ -14,13 +14,16 @@ For each programming problem, please include a detailed comments section at the 
 
 from PIL import Image
 from numpy import *
+from scipy.stats import norm
 from scipy.ndimage import filters
 from scipy.misc import imsave
 import sys
+import os
+import matplotlib.pyplot as plt
 
 # calculate "Edge strength map" of an image
 #
-def edge_strength(input_image):
+def compute_edge_strength(input_image):
     grayscale = array(input_image.convert('L'))
     filtered_y = zeros(grayscale.shape)
     filters.sobel(grayscale,0,filtered_y)
@@ -43,35 +46,72 @@ def draw_edge(image, y_coordinates, color, thickness):
     
 def draw_state(obs_prob, prev = -1, next = -1):
     #draw random state given transition probabilities from previous and next states in sample and emission probabilities
-
     if prev == -1:
-        p = [ 1.0/(abs(next-i)+1) * obs_prob[i] for i in range(len(obs_prob)) ] #p(s_t | (s_(t+1), obs_t)
+        p = [ (normal_dist[abs(next-i)] if abs(next-i)>1 else 0.5) * obs_prob[i] for i in range(len(obs_prob)) ] #p(s_t | (s_(t+1), obs_t)
+        #p = [ (0.99 if next==i else 0.01/abs(next-i)) * obs_prob[i] for i in range(len(obs_prob)) ] #p(s_t | (s_(t+1), obs_t)
     elif next == -1:
-        p = [ 1.0/(abs(prev-i)+1) * obs_prob[i] for i in range(len(obs_prob)) ] #p(s_t | (s_(t-1), obs_t)
+        p = [ (normal_dist[abs(prev-i)] if abs(prev-i)>1 else 0.5) * obs_prob[i] for i in range(len(obs_prob)) ] #p(s_t | (s_(t-1), obs_t)
+        #p = [ (0.99 if prev==i else 0.01/abs(prev-i)) * obs_prob[i] for i in range(len(obs_prob)) ] #p(s_t | (s_(t-1), obs_t)
     else:
-        p = [ 1.0/(abs(prev-i)+1) * 1.0/(abs(next-i)+1) * obs_prob[i] for i in range(len(obs_prob)) ] #p(s_t | (s_(t-1), s_(t+1), obs_t)
-    #print "prev, next, prob", prev, next, p/sum(p)
+        p = [ (normal_dist[abs(prev-i)] if abs(prev-i)>1 else 0.5) * (normal_dist[abs(next-i)] if abs(next-i)>2 else 0.5) * obs_prob[i] for i in range(len(obs_prob)) ] #p(s_t | (s_(t-1), s_(t+1), obs_t)
+        #p = [ (0.99 if prev==i else 0.01/abs(prev-i)) * (0.99 if next==i else 0.01/abs(next-i)) * obs_prob[i] for i in range(len(obs_prob)) ] #p(s_t | (s_(t-1), s_(t+1), obs_t)
+        plt.plot(p)
+        plt.show()
     return random.choice(range(len(p)), 1, replace = True, p = array(p/sum(p))) #normalize probabilities and pick one at random
 
-def mcmc(e, iterations = 10000):
+def mcmc(e, iterations = 3000, pixel = (-1, -1)):
     m, n = map(int, e.shape)
     #normalize emission probabilities
     e /= e.sum(axis=0)
+    if pixel != (-1, -1):
+      e[:,pixel[1]] = 0
+      e[pixel] = 1
     #generate initial sample as baseline ridge (simple bayes)
     sample = edge_strength.argmax(axis = 0)
-    #sample = random.choice(m, n, replace = True)
     #gibbs sampling
     for iter in range(iterations):
       sample[0] = draw_state(e[:,0], next = sample[1])
       for i in range(1, n-1):
         sample[i] = draw_state(e[:,i], prev = sample[i-1], next = sample[i+1])
       sample[n-1] = draw_state(e[:,n-1], prev = sample[n-2])
-      if iter % 100 == 0: print iter
+      if iter % 100 == 0: print "iteration", iter
     return sample
           
   
 # main program
 #
+#'''
+img_directory = "test_images/"
+for file in os.listdir(img_directory):
+    if not file.endswith(".jpg") or file != "mountain8.jpg": continue
+    print file
+    input_filename = os.path.join(img_directory, file)
+      #note_features = read_features(os.path.join("audio/",file), "stft")
+    output_filename = "part2_" + file
+    gt_row = gt_col = -1
+
+    # load in image 
+    input_image = Image.open(input_filename)
+
+    # compute edge strength mask
+    edge_strength = compute_edge_strength(input_image)
+    imsave('edges.jpg', edge_strength)
+
+
+    baseline_ridge = [ edge_strength.shape[0]/2 ] * edge_strength.shape[1]
+    simple_bayes_ridge = edge_strength.argmax(axis = 0)
+    #mcmc_ridge = mcmc( array([[.9,.1,.1,.1],[.1,.9,.9,.1],[.1,.1,.1,.9]]) , iterations = 1000) #test on small array
+    normal_dist = [ max(0.0000001, norm.pdf(i, 0, 2)) for i in range(edge_strength.shape[1]) ]
+    mcmc_ridge = mcmc(edge_strength, iterations = 2000)
+    #print [(col, row) for col, row in enumerate(mcmc_ridge)]
+
+    # output answer
+    #imsave(output_filename, draw_edge(input_image, simple_bayes_ridge, (255, 0, 0), 5))
+    imsave(output_filename, draw_edge(input_image, mcmc_ridge, (0, 0, 255), 5))
+#'''
+
+'''
+#old code that runs only on one file
 (input_filename, output_filename, gt_row, gt_col) = sys.argv[1:]
 
 # load in image 
@@ -84,12 +124,13 @@ imsave('edges.jpg', edge_strength)
 
 baseline_ridge = [ edge_strength.shape[0]/2 ] * edge_strength.shape[1]
 simple_bayes_ridge = edge_strength.argmax(axis = 0)
-#mcmc_ridge = mcmc( array([[.9,.1,.1,.1],[.1,.9,.9,.1],[.1,.1,.1,.9]]) ) #test on small array
-mcmc_ridge = mcmc(edge_strength, iterations = 100)
-print mcmc_ridge
+#mcmc_ridge = mcmc( array([[.9,.1,.1,.1],[.1,.9,.9,.1],[.1,.1,.1,.9]]) , iterations = 1000) #test on small array
+normal_dist = [ norm.pdf(i, 0, 4) for i in range(edge_strength.shape[1]) ]
+mcmc_ridge = mcmc(edge_strength, iterations = 3000)
+print [(col, row) for col, row in enumerate(mcmc_ridge)]
 
 
 # output answer
 #imsave(output_filename, draw_edge(input_image, simple_bayes_ridge, (255, 0, 0), 5))
-imsave(output_filename, draw_edge(input_image, mcmc_ridge, (255, 0, 0), 5))
-
+imsave(output_filename, draw_edge(input_image, mcmc_ridge, (0, 255, 0), 5))
+'''
