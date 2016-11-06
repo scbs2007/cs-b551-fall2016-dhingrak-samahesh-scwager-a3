@@ -46,7 +46,7 @@ class Solver:
         #return [ [ [ "noun" ] * len(sentence)], [[0] * len(sentence),] ]
 
     def hmm(self, sentence):
-        #return hmm.findPosHmm(self.probObj, sentence)
+        return hmm.findPosHmm(self.probObj, sentence)
         return [ [ [ "noun" ] * len(sentence)], [] ]
 
     def complex(self, sentence):

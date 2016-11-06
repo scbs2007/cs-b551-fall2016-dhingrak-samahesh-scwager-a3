@@ -20,10 +20,10 @@ def findPosSimplified(probObj, sentence):
 
         # If word wasn't found in the training data
         if highestProb == 0:
-            bestPos = probObj.getBestEstimatedPos(eachWord)
+            bestPos, highestProb = probObj.getPosForUnseenWord(eachWord)
 
         predictedPos.append(bestPos)
-        probValues.append(round(highestProb, 2))
+        probValues.append(highestProb)
     #print predictedPos
     #print probValues
     return [[predictedPos], [probValues]]
