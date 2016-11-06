@@ -73,12 +73,12 @@ def populateMatrix(arr, probObj, allPos, posInd, sentence):
         for pos in currentPos:
             tempValues = []
             #print "Word: POS: ", word, pos
-            #tempValues = [(previousPos[0] * probObj.getProbNextPosGivenPrevPos(previousPos[1], pos) * currentPos[pos], previousPos[1]) for previousPos in posForNextIteration]
-            for previousPos in posForNextIteration:
+            tempValues = [(previousPos[0] * probObj.getProbNextPosGivenPrevPos(previousPos[1], pos) * currentPos[pos], previousPos[1]) for previousPos in posForNextIteration]
+            #for previousPos in posForNextIteration:
                 #print "previousPos[0] : ", previousPos[0]
                 #print "trans: ", probObj.getProbNextPosGivenPrevPos(previousPos[1], pos)
                 #print "emission: ", currentPos[pos]
-                tempValues.append(tuple((previousPos[0] * probObj.getProbNextPosGivenPrevPos(previousPos[1], pos) * currentPos[pos], previousPos[1])))
+            #    tempValues.append(tuple((previousPos[0] * probObj.getProbNextPosGivenPrevPos(previousPos[1], pos) * currentPos[pos], previousPos[1])))
                 #tempValues.append(((math.log(previousPos[0]) + math.log(probObj.getProbNextPosGivenPrevPos(previousPos[1], pos)) + math.log(currentPos[pos]), previousPos[1])))
             #print "TempValues: ", tempValues
             if tempValues:
@@ -87,8 +87,9 @@ def populateMatrix(arr, probObj, allPos, posInd, sentence):
                 #print "Temp Not Present"
                 for entry in arr[count - 1]:
                     if entry[1] != 0:
+                        #Rounding very small values to 0.001
                         #tempValues.append((previousPos[1], 0.5))
-                        arr[count][posInd[pos]] = (0.5, findKeyFromValue(posInd, arr[count-1].index(entry)))
+                        arr[count][posInd[pos]] = (0.001, findKeyFromValue(posInd, arr[count-1].index(entry)))
                         break
                 
             #print "ARR: ", arr[count]
