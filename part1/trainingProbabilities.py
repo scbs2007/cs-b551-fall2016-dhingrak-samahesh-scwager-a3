@@ -42,7 +42,7 @@ class TrainingProbs:
 
     # Check if a given suffix|pos combination is present in our list
     def checkPos(self, suffix, pos):
-        suffixPos = suffix + '|' + pos
+        suffixPos = suffix + self.delimit + pos
         if suffixPos in self.suffixAndPos:
             return suffixPos
         return None
@@ -63,16 +63,17 @@ class TrainingProbs:
 
     # Smoothing Transition Probabilities
     def smoothing(self):
-        allPos = self.probPos.keys()
+        allPos = self.probPos
         for currentPos in allPos:
-            self.probPosGivenPos[currentPos + self.delimit + self.startOfSentence] += 1
+            posDelimit = currentPos + self.delimit
+            self.probPosGivenPos[posDelimit + self.startOfSentence] += 1
             self.probPos[currentPos] += 1
             self.countOfPos += 1
             for previousPos in allPos:
-                self.probPosGivenPos[currentPos + self.delimit + previousPos] += 1
+                self.probPosGivenPos[posDelimit + previousPos] += 1
+                self.countOfPos += 2
                 self.probPos[previousPos] += 1
                 self.probPos[currentPos] += 1
-                self.countOfPos += 2
 
     # TODO: Update model to reflect unkown word that was found
     def updateModel(self, word, pos):
@@ -123,6 +124,7 @@ class TrainingProbs:
         self.calculateWordProb()
         self.calculateTransitionProb()
         self.calculatePosProb()
+
         #print "Suffix and POS: "
         #for i in self.suffixAndPos:
         #    print i, self.probSuffixPos[i]
@@ -154,6 +156,8 @@ class TrainingProbs:
             else:
                 self.probPosGivenPos[entry] /= self.probPos[pos[0]]
             #print "Transition Probabilities for entry: ", entry, self.probPosGivenPos[entry]
+        #sys.exit(0)
+
 
     def getProbNextPosGivenPrevPos(self, prevPos, presentPos):
         return self.probPosGivenPos[presentPos + self.delimit + prevPos]
@@ -161,6 +165,7 @@ class TrainingProbs:
     def getProbWGivenPosSimplified(self, word, pos):
         return self.probWordGivenPos[word + self.delimit + pos]
 
+    '''
     def getAllProbWGivenPos(self, word):
         result = {entry: self.probWordGivenPos[entry] for entry in self.probWordGivenPos.keys() if entry.startswith(word)}
         if not result:
@@ -168,8 +173,9 @@ class TrainingProbs:
             pos, prob = self.getPosForUnseenWord(word)
             result[word + self.delimit + pos] = prob
         return result
+    '''
 
-    # TODO - Change Logic
+    # TODO - improve Logic
     def getProbWGivenPosHMM(self, word, pos):
         return self.probWordGivenPos[word + self.delimit + pos]
  
@@ -205,6 +211,7 @@ class TrainingProbs:
                 
         # Update Model 
         calculatedProb = self.updateModel(word, predictedPos)
+
         #print "Word Not Found: Predicted: ", predictedPos
         return predictedPos, calculatedProb
 

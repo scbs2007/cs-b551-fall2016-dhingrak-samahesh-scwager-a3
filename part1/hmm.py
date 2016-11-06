@@ -103,3 +103,4 @@ def findPosHmm(probObj, sentence):
     populateMatrix(maxValues, probObj, allPos, posInd, sentence)
     return [[backTrack(maxValues, posInd)], []]
     #sys.exit(0)
+
