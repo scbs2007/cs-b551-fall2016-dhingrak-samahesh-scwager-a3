@@ -29,8 +29,31 @@ class Solver:
     # Calculate the log of the posterior probability of a given sentence
     # with a given part-of-speech labeling
     #
-    def posterior(self, sentence, label):
-        return 0
+    def posterior(self, sentence, label, algo):
+        #print "POSTERIOR: ", sentence, label, algo
+        posterior = 0
+        pWgivenS = 0
+        for i in range(len(sentence)):
+            #print i, sentence[i], label[i], self.probObj.probWordGivenPos[sentence[i] + '|' + label[i]], self.probObj.probPos[label[i]]
+            #print algo
+            if 'Simplified' in algo:
+                pWgivenS = self.probObj.probWordGivenPos[sentence[i]+'|'+label[i]]
+                #print "PW|S", pWgivenS
+            elif 'HMM' in algo:
+                #print "Value: ", self.probObj.hmmMarginal[sentence[i]+'|'+ label[i]]
+                pWgivenS = self.probObj.hmmMarginal[sentence[i]+'|'+ label[i]]
+                
+                #print "PW|S", pWgivenS
+            elif 'Complex' in algo:
+                return 0
+            else:
+                return 0
+                #pWgivenS = 1
+            pWgivenS = 0.1 / self.probObj.countOfWords if pWgivenS == 0 else pWgivenS
+            #print pWgivenS, self.probObj.probPos[label[i]]
+            posterior += math.log(pWgivenS)#*self.probObj.probPos[label[i]])
+        #print "POSTERIOR: ", posterior
+        return posterior
 
     # Do the training!
     #

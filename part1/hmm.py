@@ -97,23 +97,37 @@ def populateMatrix(arr, probObj, allPos, posInd, sentence):
         #print "POS fOR NEXT ITERATION: ", posForNextIteration
         count += 1 
     #for i in range(len(arr)):
-        #print arr[i]
+    #    print arr[i]
+
+# finds max value in list which has a pos
+def maxLast(myList):
+    value = max(myList, key=itemgetter(0))
+    if value[1] == 0:
+        for val in myList:
+            if val[1] != 0:
+                return myList.index(val)
+    return myList.index(value)
 
 # Backtracking on the maxValues matrix to generate the POS sequence
-def backTrack(arr, posInd):
+def backTrack(arr, posInd, probObj, sentence):
     result = []
+    marginalProbs = []
     l = len(arr)
     lastRow = arr[l - 1]
-    maxLastRow = lastRow.index(max(lastRow, key=itemgetter(0)))
+    maxLastRow = maxLast(lastRow) #lastRow.index(max(lastRow, key=itemgetter(0)))
     #print maxLastRow
     #print posInd
     result.append(findKeyFromValue(posInd, maxLastRow))
+    marginalProbs.append(arr[l-1][maxLastRow][0])
     for i in range(l - 1, 0, -1):
-        cellValue = arr[i][maxLastRow][1]
-        result.append(cellValue)
-        maxLastRow = posInd[cellValue]
-        #print cellValue
+        cellValue = arr[i][maxLastRow]
+        result.append(cellValue[1])
+        marginalProbs.append(cellValue[0])
+        #print "Cellvalue: ", cellValue
+        maxLastRow = posInd[cellValue[1]]
     result.reverse()
+    marginalProbs.reverse()
+    probObj.storeMarginal(marginalProbs, result, sentence)
     #print result
     return result
 
@@ -124,6 +138,5 @@ def findPosHmm(probObj, sentence):
     maxValues = [[(0, 0)] * len(allPos) for i in range(len(sentence))]
     findInitialProbabilities(maxValues, allPos, posInd, probObj, sentence[0])
     populateMatrix(maxValues, probObj, allPos, posInd, sentence)
-    return [[backTrack(maxValues, posInd)], []]
+    return [[backTrack(maxValues, posInd, probObj, sentence)], []]
     #sys.exit(0)
-

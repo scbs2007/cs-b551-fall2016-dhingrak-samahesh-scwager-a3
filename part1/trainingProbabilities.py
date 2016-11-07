@@ -24,6 +24,7 @@ class TrainingProbs:
                             'en|verb', 'ed|verb', "'s|noun", 'y|noun', 'y|adj']
         
         self.probSuffixPos = Counter() # Probability of word with suffix being a pos. eg: P of word with suffix 'sion' being a 'noun'
+        self.hmmMarginal = Counter() # stores P(W|S) for later calculation of posterior
         self.probPos = Counter() # P(S)
         self.probPosGivenPos = Counter() # P(Si+1|Si)
         self.tranProbComplex = Counter() # P(Si+2|Si)
@@ -69,25 +70,42 @@ class TrainingProbs:
                 return True
         return False
 
-    # Smoothing Transition Probabilities
-    def smoothing(self):
+    '''
+    # Smoothing Transition Probabilities P(Si+2|Si)
+    def smoothing2(self):
         allPos = self.probPos
         for currentPos in allPos:
             posDelimit = currentPos + self.delimit
-            self.probPosGivenPos[posDelimit + self.startOfSentence] += 1
+            self.tranProbComplex[posDelimit + self.startOfSentence] += 1
             self.probPos[currentPos] += 1
             self.countOfPos += 1
             for previousPos in allPos:
-                self.probPosGivenPos[posDelimit + previousPos] += 1
+                self.tranProbComplex[posDelimit + previousPos] += 1
+                self.countOfPos += 2
+                self.probPos[previousPos] += 1
+    '''
+
+    # Smoothing Transition Probabilities P(Si+1|Si) or P(Si+2|Si)
+    def smoothing(self, myDict):
+        allPos = self.probPos
+        for currentPos in allPos:
+            posDelimit = currentPos + self.delimit
+            myDict[posDelimit + self.startOfSentence] += 1
+            self.probPos[currentPos] += 1
+            self.countOfPos += 1
+            for previousPos in allPos:
+                myDict[posDelimit + previousPos] += 1
                 self.countOfPos += 2
                 self.probPos[previousPos] += 1
                 self.probPos[currentPos] += 1
 
     # TODO: Update model to reflect unkown word that was found
     def updateModel(self, word, pos):
-        #self.countOfWords += 1
+        self.countOfWords += 1
         query = word + self.delimit + pos
-        self.probWordGivenPos[query] = 1/self.countOfWords
+        #print "Updating for word: ", word, pos
+        self.probWordGivenPos[query] = 0.1/self.countOfWords
+        #print self.probWordGivenPos[query]
 	return self.probWordGivenPos[query]
     
     # Calculating Count for P(si+2|si)
@@ -141,7 +159,8 @@ class TrainingProbs:
                     self.probPosGivenPos[pos + self.delimit + previousPos] += 1
                 previousPos = pos
         self.smoothSuffixPos()
-        self.smoothing()
+        self.smoothing(self.probPosGivenPos)
+        self.smoothing(self.tranProbComplex)
         self.calculateWordProb()
         self.calculateTransitionProb()
         self.calculatePosProb()
@@ -158,26 +177,32 @@ class TrainingProbs:
     
     # Calculate P(S)
     def calculatePosProb(self):
-        for entry in self.probPos.keys():
+        for entry in self.probPos:
             self.probPos[entry] /= self.countOfPos
             #print "P(S): POS: entry: ", entry, self.probPos[entry]
 
     # Calculate P(W|S)
     def calculateWordProb(self):
-        for entry in self.probWordGivenPos.keys():
+        for entry in self.probWordGivenPos:
             self.probWordGivenPos[entry] /= self.probPos[entry.split(self.delimit)[1]]
             #print "P(W|S): Word: entry", entry, self.probWordGivenPos[entry]
 
     # Calculate P(Si+1 | Si) - Transition Probability
     def calculateTransitionProb(self):
-        for entry in self.probPosGivenPos.keys():
+        for entry in self.probPosGivenPos:
             pos = entry.split(self.delimit)
             if pos[1] == self.startOfSentence:
                 self.probPosGivenPos[entry] /= self.numberOfSentences
+                #print "Start OF Sentence: ", self.probPosGivenPos[entry]
             else:
                 self.probPosGivenPos[entry] /= self.probPos[pos[0]]
             #print "Transition Probabilities for entry: ", entry, self.probPosGivenPos[entry]
 
+    # Store the marginal values computed after HMM
+    def storeMarginal(self, prob, pos, sentence):
+        #print "In store Marginal: ", prob, pos, sentence
+        for i in range(len(sentence)):
+            self.hmmMarginal[sentence[i] + self.delimit + pos[i]] = prob[i]
 
     def getProbNextPosGivenPrevPos(self, prevPos, presentPos):
         return self.probPosGivenPos[presentPos + self.delimit + prevPos]
@@ -187,7 +212,7 @@ class TrainingProbs:
 
     '''
     def getAllProbWGivenPos(self, word):
-        result = {entry: self.probWordGivenPos[entry] for entry in self.probWordGivenPos.keys() if entry.startswith(word)}
+        result = {entry: self.probWordGivenPos[entry] for entry in self.probWordGivenPos if entry.startswith(word)}
         if not result:
             # Word not seen in training data
             pos, prob = self.getPosForUnseenWord(word)
@@ -203,7 +228,7 @@ class TrainingProbs:
         return self.probPos[pos]
 
     def getAllPos(self):
-        return self.probPos.keys()
+        return self.probPos
     
     def getPosForUnseenWord(self, word):
         #print "Word Not Found: ", word
@@ -229,7 +254,7 @@ class TrainingProbs:
                             maxProb = currentValue
                             bestPos = pos
                             #print "best", bestPos
-                #probValues = [(self.probSuffixPos[entry] * self.probPos[entry.split(self.delimit)[1]], entry) for entry in self.suffixAndPos.keys() if entry.startswith(suffixOfWord)]
+                #probValues = [(self.probSuffixPos[entry] * self.probPos[entry.split(self.delimit)[1]], entry) for entry in self.suffixAndPos if entry.startswith(suffixOfWord)]
                 predictedPos = bestPos
                 #print predictedPos 
                 

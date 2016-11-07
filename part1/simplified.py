@@ -1,6 +1,6 @@
 # For Simplified Bayes Net
 #
-
+import math
 '''
 def replaceGreater(p1, p2, best, pos):
     if p1 > p2:
