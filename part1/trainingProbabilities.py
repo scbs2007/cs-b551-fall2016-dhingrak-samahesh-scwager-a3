@@ -25,6 +25,7 @@ class TrainingProbs:
         
         self.probSuffixPos = Counter() # Probability of word with suffix being a pos. eg: P of word with suffix 'sion' being a 'noun'
         self.hmmMarginal = Counter() # stores P(W|S) for later calculation of posterior
+        self.complexMarginal = Counter() # stores P(W|S)Complex for later calculation of posterior
         self.probPos = Counter() # P(S)
         self.probPosGivenPos = Counter() # P(Si+1|Si)
         self.tranProbComplex = Counter() # P(Si+2|Si)
@@ -203,6 +204,12 @@ class TrainingProbs:
         #print "In store Marginal: ", prob, pos, sentence
         for i in range(len(sentence)):
             self.hmmMarginal[sentence[i] + self.delimit + pos[i]] = prob[i]
+    
+    # Store the marginal values computed after HMM
+    def storeMarginalComplex(self, prob, pos, sentence):
+        #print "In store Marginal: ", prob, pos, sentence
+        for i in range(len(sentence)):
+            self.complexMarginal[sentence[i] + self.delimit + pos[i]] = prob[i]
 
     def getProbNextPosGivenPrevPos(self, prevPos, presentPos):
         return self.probPosGivenPos[presentPos + self.delimit + prevPos]
