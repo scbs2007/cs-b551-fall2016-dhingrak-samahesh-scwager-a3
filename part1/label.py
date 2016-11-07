@@ -55,7 +55,7 @@ for (s, gt) in test_data:
         outputs[ str(i+1) + ". " + Algorithms[i] ] = solver.solve(Algorithms[i], s)
 
     # compute posteriors for each solution
-    posteriors = { algo: [ solver.posterior(s, output) for output in outputs[algo][0] ] for algo in outputs }
+    posteriors = { algo: [ solver.posterior(s, output, algo) for output in outputs[algo][0] ] for algo in outputs }
 
     Score.print_results(s, outputs, posteriors)
 
