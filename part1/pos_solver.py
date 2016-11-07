@@ -5,11 +5,50 @@
 #
 # (Based on skeleton code by D. Crandall)
 #
-#
-####
-# Put your report here!!
-####
-#
+
+'''
+(1) a description of how you formulated the problem, including precisely defining the abstractions (e.g. HMM formulation); 
+  part 1: P(W|S), P(Si+1|Si), P(S) has been calculated and stored in dictionaries.
+  part 2: This dealt with the implementation of the Simplified Bayes Net. Here we maximize depending on the P(W|S) * P(S).
+  part 3: This dealt with the implementation of the HMM. The HMM was built exactly as given in the pdf. We are using the probabilities
+  from the first step for calculations and have used a 2 dimensional matrix to implement the Viterbi Algorithm. The rows of the matrix correspond
+  to each word of the sequence and the columns correspond to all possible Pos of a particular word. Then after building the whole matrix with tuples
+  of the form (maxProbability, pos). e back track starting from the last row.
+  part 4: This dealt with the implementation of the complex Bayes Net. We have implemented the Forward Algorithm to solve it.
+  For finding the pos of si+3 we take into consideration all possible transitions from si+2 and si and maximize it.
+  
+  Result Obtained for given bc.test file after training on the given bc.train file
+  ==> So far scored 2000 sentences with 29442 words.
+                   Words correct:     Sentences correct:
+   0. Ground truth:      100.00%              100.00%
+     1. Simplified:       94.37%               49.75%
+            2. HMM:       96.11%               60.95%
+        3. Complex:       39.19%                0.15%
+  ----
+
+(2) 
+The program has been divided into many files:
+1. trainingProbabilities.py deals with all the Probability calculations and stores P(W|S), P(Si+1|Si), P(Si+2|Si), P(S) values as Counter() variables
+2. complexB.py deals with the implementation of the complex bayes net
+3. simplified.py deals with the implementation of the naive bayes net
+4. hmm.py deals with the implementation of Viterbi
+We have also modified the label.py and pos_solver.py files to do the implementation of the posterior probs.
+
+(3) 
+It was difficult choosing the probability of a word that was not seen in the training data.
+We assign the pos of an unseen word based on the suffix of that word. We have used common suffixes in the English language which tell us the pos. They
+were taken from:
+        # http://southcentral.edu/images/departments/ASC/documents/Suffixes_that_Indicate_Part_of_Speech_2.pdf
+        # https://docs.google.com/document/d/1nxRkGUUmVH2vN2hp39yiMnnBdwo5wqv9dkr4cLn4DMo/edit
+
+We assign the probability of 0.1/ total number of words in the model to P(thatWord| the POS predicted), and dynamically update the model in the hopes of getting better
+results for HMM and complex.
+
+The transition probabilities have been smoothed by using Laplace Smoothing. We increase the count of all transitions of all the pos from the training data by 1,
+before calculating the transition probabilities.
+
+'''
+
 from trainingProbabilities import TrainingProbs
 import simplified
 import hmm
@@ -45,7 +84,8 @@ class Solver:
                 
                 #print "PW|S", pWgivenS
             elif 'Complex' in algo:
-                return 0
+                pWgivenS = self.probObj.complexMarginal[sentence[i]+'|'+ label[i]]
+                #return 0
             else:
                 return 0
                 #pWgivenS = 1
@@ -73,7 +113,7 @@ class Solver:
         #return [ [ [ "noun" ] * len(sentence)], [] ]
 
     def complex(self, sentence):
-        #return complexB.findPosComplex(self.probObj, sentence)
+        return complexB.findPosComplex(self.probObj, sentence)
         return [ [ [ "noun" ] * len(sentence)], [[0] * len(sentence),] ]
 
 
